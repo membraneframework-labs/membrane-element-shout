@@ -1,9 +1,11 @@
 # Membrane Multimedia Framework: Shout Element
 
 This package provides elements that can be used to send streams to the
-[Shout](http://shout.org) streaming server.
+[Icecast](http://icecast.org) streaming server.
 
-At the moment it supports only MPEG Audio stream.
+It is based on [libshout](http://downloads.xiph.org/releases/libshout/).
+
+At the moment it supports only MPEG Audio streams.
 
 # Installation
 
