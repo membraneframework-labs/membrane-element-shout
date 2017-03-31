@@ -31,6 +31,7 @@ defmodule Membrane.Element.Shout.Mixfile do
   defp deps do
     [
       {:membrane_core, git: "git@github.com:membraneframework/membrane-core.git"},
+      # {:membrane_core, path: "/Users/marcin/aktivitis/radiokit/membrane-core", override: true},
       {:membrane_common_c, git: "git@github.com:membraneframework/membrane-common-c.git"},
       {:membrane_caps_audio_mpeg, git: "git@github.com:membraneframework/membrane-caps-audio-mpeg.git"},
       {:bundlex, git: "git@github.com:radiokit/bundlex.git"},

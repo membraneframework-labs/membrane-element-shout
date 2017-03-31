@@ -82,4 +82,25 @@ defmodule Membrane.Element.Shout.Sink.Native do
     {:error, {:args, atom, String.t}} |
     {:error, {:internal, atom}}
   def stop(_native), do: raise "NIF fail"
+
+
+  @doc """
+  Writes data to the shout sink.
+
+  Expects 2 arguments:
+
+  - handle to the sink,
+  - payload.
+
+  On success, returns `:ok`.
+
+  On bad arguments passed, returns `{:error, {:args, field, description}}`.
+
+  On internal error, returns `{:error, {:write, reason}}`.
+  """
+  @spec write(any, bitstring) ::
+    :ok |
+    {:error, {:args, atom, String.t}} |
+    {:error, {:internal, atom}}
+  def write(_native, _payload), do: raise "NIF fail"
 end
