@@ -71,6 +71,10 @@ defmodule Membrane.Element.Shout.Sink do
 
 
   @doc false
+  def handle_stop(%{native: nil} = state) do
+    {:ok, state}
+  end
+
   def handle_stop(%{native: native} = state) do
     case Native.stop(native) do
       :ok ->
@@ -125,8 +129,8 @@ defmodule Membrane.Element.Shout.Sink do
 
   @doc false
   # Handle request from NIF that indicates send error
-  def handle_other(:membrane_send_error, %{native: native} = state) do
-    warn("Send error")
+  def handle_other({:membrane_send_error, reason}, %{native: native} = state) do
+    warn("Send error: #{reason}")
     case Native.stop(native) do
       :ok ->
         {:error, :send, %{state | native: nil}}
@@ -159,8 +163,8 @@ defmodule Membrane.Element.Shout.Sink do
 
   @doc false
   # Handle request from NIF that indicates that we're not able to connect
-  def handle_other(:membrane_send_cannot_connect, %{native: native} = state) do
-    warn("Connection error")
+  def handle_other({:membrane_send_cannot_connect, reason}, %{native: native} = state) do
+    warn("Connection error: #{reason}")
     case Native.stop(native) do
       :ok ->
         {:error, :cannot_connect, %{state | native: nil}}

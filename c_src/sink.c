@@ -49,9 +49,9 @@ void unload(ErlNifEnv *env, void *priv_data) {
 }
 
 
-#define ENIF_SEND_UPSTREAM(message, cleanup) \
+#define ENIF_SEND(term, cleanup) \
   msg_env = enif_alloc_env(); \
-  if(!enif_send(NULL, sink_handle->self_pid, msg_env, enif_make_atom(msg_env, message))) { \
+  if(!enif_send(NULL, sink_handle->self_pid, msg_env, term)) { \
     MEMBRANE_DEBUG("Send: enif_send failed, it is likely a bug in the element or the framework"); \
     enif_free_env(msg_env); \
     cleanup; \
@@ -62,6 +62,26 @@ void unload(ErlNifEnv *env, void *priv_data) {
     return NULL; \
   } \
   enif_free_env(msg_env);
+
+
+/**
+ * Sends message to the element, that will be an atom made of given message.
+ *
+ * In unlikely case of sending fails, quits the thread executing first given
+ * cleanup code.
+ */
+#define ENIF_SEND_UPSTREAM(message, cleanup) \
+  ENIF_SEND(enif_make_atom(msg_env, message), cleanup);
+
+/**
+ * Sends message to the element, that will be a 2-element tuple with
+ * atom made of given message and shout error string.
+ *
+ * In unlikely case of sending fails, quits the thread executing first given
+ * cleanup code.
+ */
+#define ENIF_SEND_UPSTREAM_WITH_ERROR(message, cleanup) \
+  ENIF_SEND(enif_make_tuple2(msg_env, enif_make_atom(msg_env, message), enif_make_string(msg_env, shout_get_error(sink_handle->shout), ERL_NIF_LATIN1)), cleanup);
 
 
 /**
@@ -84,23 +104,12 @@ static void *thread_func(void *args) {
   MEMBRANE_DEBUG("Connecting to the server");
   if(shout_open(sink_handle->shout) != SHOUTERR_SUCCESS) {
     MEMBRANE_DEBUG("Failed to connect to the server: %s", shout_get_error(sink_handle->shout));
-    shout_close(sink_handle->shout);
+    ENIF_SEND_UPSTREAM_WITH_ERROR("membrane_send_cannot_connect", { shout_close(sink_handle->shout); });
 
-    ENIF_SEND_UPSTREAM("membrane_send_cannot_connect", {});
-
-    // Release the handle so it can be garbage collected
-    enif_release_resource(sink_handle);
-
-    // Indicate that we are not running
-    enif_mutex_lock(sink_handle->lock);
-    sink_handle->thread_running = 0;
-    enif_mutex_unlock(sink_handle->lock);
-
-    return NULL;
+    goto thread_cleanup;
   }
 
   MEMBRANE_DEBUG("Connected to the server");
-
   while(1) {
     // Check if we are exiting
     enif_mutex_lock(sink_handle->lock);
@@ -118,10 +127,7 @@ static void *thread_func(void *args) {
     MembraneRingBufferItem* item = membrane_ringbuffer_pull(sink_handle->ringbuffer);
     if(item == NULL) {
       MEMBRANE_DEBUG("Send: Underrun, exiting loop");
-
-      ENIF_SEND_UPSTREAM("membrane_send_underrun", {
-        shout_close(sink_handle->shout);
-      });
+      ENIF_SEND_UPSTREAM("membrane_send_underrun", { shout_close(sink_handle->shout); });
 
       break;
     }
@@ -137,10 +143,7 @@ static void *thread_func(void *args) {
 
     if(send_ret != SHOUTERR_SUCCESS) {
       MEMBRANE_DEBUG("Send: error %s", shout_get_error(sink_handle->shout));
-
-      ENIF_SEND_UPSTREAM("membrane_send_error", {
-        shout_close(sink_handle->shout);
-      });
+      ENIF_SEND_UPSTREAM_WITH_ERROR("membrane_send_error", { shout_close(sink_handle->shout); });
       break;
     }
 
@@ -148,6 +151,8 @@ static void *thread_func(void *args) {
     MEMBRANE_DEBUG("Send: Synchronizing clock");
     shout_sync(sink_handle->shout);
   }
+
+thread_cleanup:
 
   MEMBRANE_DEBUG("Send: Stopping");
 
