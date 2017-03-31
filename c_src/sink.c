@@ -19,6 +19,8 @@ void res_sink_handle_destructor(ErlNifEnv *env, void *value) {
     shout_close((shout_t *) sink_handle->shout);
   }
 
+  // TODO handle case when we get garbage collected while still running
+  
   if(sink_handle->ringbuffer != NULL) {
     membrane_ringbuffer_destroy(sink_handle->ringbuffer);
   }
