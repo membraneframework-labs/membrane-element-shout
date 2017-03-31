@@ -155,4 +155,21 @@ defmodule Membrane.Element.Shout.Sink do
         throw reason
     end
   end
+
+
+  @doc false
+  # Handle request from NIF that indicates that we're not able to connect
+  def handle_other(:membrane_send_cannot_connect, %{native: native} = state) do
+    warn("Connection error")
+    case Native.stop(native) do
+      :ok ->
+        {:error, :cannot_connect, %{state | native: nil}}
+
+      {:error, reason} ->
+        # That should really not happen, it is not recoverable error, it
+        # rather indicates bug in the C code, so throw instead of returning
+        # {:error, reason, new_state}.
+        throw reason
+    end
+  end
 end

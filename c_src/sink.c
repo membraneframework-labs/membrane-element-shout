@@ -49,6 +49,21 @@ void unload(ErlNifEnv *env, void *priv_data) {
 }
 
 
+#define ENIF_SEND_UPSTREAM(message, cleanup) \
+  msg_env = enif_alloc_env(); \
+  if(!enif_send(NULL, sink_handle->self_pid, msg_env, enif_make_atom(msg_env, message))) { \
+    MEMBRANE_DEBUG("Send: enif_send failed, it is likely a bug in the element or the framework"); \
+    enif_free_env(msg_env); \
+    cleanup; \
+    enif_release_resource(sink_handle); \
+    enif_mutex_lock(sink_handle->lock); \
+    sink_handle->thread_running = 0; \
+    enif_mutex_unlock(sink_handle->lock); \
+    return NULL; \
+  } \
+  enif_free_env(msg_env);
+
+
 /**
  * Main function of the sending thread.
  */
@@ -71,10 +86,15 @@ static void *thread_func(void *args) {
     MEMBRANE_DEBUG("Failed to connect to the server: %s", shout_get_error(sink_handle->shout));
     shout_close(sink_handle->shout);
 
-    // TODO send error upstream
+    ENIF_SEND_UPSTREAM("membrane_send_cannot_connect", {});
 
     // Release the handle so it can be garbage collected
     enif_release_resource(sink_handle);
+
+    // Indicate that we are not running
+    enif_mutex_lock(sink_handle->lock);
+    sink_handle->thread_running = 0;
+    enif_mutex_unlock(sink_handle->lock);
 
     return NULL;
   }
@@ -99,32 +119,16 @@ static void *thread_func(void *args) {
     if(item == NULL) {
       MEMBRANE_DEBUG("Send: Underrun, exiting loop");
 
-      // Send error to the parent element
-      msg_env = enif_alloc_env();
-      if(!enif_send(NULL, sink_handle->self_pid, msg_env, enif_make_atom(msg_env, "membrane_send_underrun"))) {
-        // Critical condition, should never happen.
-        MEMBRANE_DEBUG("Send: enif_send failed, it is likely a bug in the element or the framework");
-        enif_free_env(msg_env);
+      ENIF_SEND_UPSTREAM("membrane_send_underrun", {
         shout_close(sink_handle->shout);
-        enif_release_resource(sink_handle);
-        return NULL;
-      }
-      enif_free_env(msg_env);
+      });
 
       break;
     }
 
-    // Send request for more data
-    msg_env = enif_alloc_env();
-    if(!enif_send(NULL, sink_handle->self_pid, msg_env, enif_make_atom(msg_env, "membrane_send_demand"))) {
-      // Critical condition, should never happen.
-      MEMBRANE_DEBUG("Send: demand send failed, it is likely a bug in the element or the framework");
-      enif_free_env(msg_env);
+    ENIF_SEND_UPSTREAM("membrane_send_demand", {
       shout_close(sink_handle->shout);
-      enif_release_resource(sink_handle);
-      return NULL;
-    }
-    enif_free_env(msg_env);
+    });
 
     // Send
     MEMBRANE_DEBUG("Send: Pushing payload");
@@ -134,19 +138,9 @@ static void *thread_func(void *args) {
     if(send_ret != SHOUTERR_SUCCESS) {
       MEMBRANE_DEBUG("Send: error %s", shout_get_error(sink_handle->shout));
 
-      // Send error to the parent element
-      msg_env = enif_alloc_env();
-      if(!enif_send(NULL, sink_handle->self_pid, msg_env, enif_make_atom(msg_env, "membrane_send_error"))) {
-        // Critical condition, should never happen.
-        MEMBRANE_DEBUG("Send: enif_send failed, it is likely a bug in the element or the framework");
-        enif_free_env(msg_env);
+      ENIF_SEND_UPSTREAM("membrane_send_error", {
         shout_close(sink_handle->shout);
-        enif_release_resource(sink_handle);
-        return NULL;
-      }
-      enif_free_env(msg_env);
-
-      MEMBRANE_DEBUG("Send: Communication error, exiting loop");
+      });
       break;
     }
 
