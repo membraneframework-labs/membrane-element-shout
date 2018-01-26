@@ -11,8 +11,8 @@ config :membrane_element_shout, :bundlex_lib,
         sources: [
           "sink.c",
           "../deps/membrane_common_c/c_src/membrane/ringbuffer.c",
-          "../deps/membrane_common_c/c_src/membrane/c11-queues/spsc_queue.c",
-          "../deps/membrane_common_c/c_src/membrane/c11-queues/memory.c",
+          "../deps/membrane_common_c/c_src/membrane/portaudio/pa_ringbuffer.c",
+          "../deps/membrane_common_c/c_src/membrane/log.c",
         ],
         libs: [
         ],
@@ -32,8 +32,8 @@ config :membrane_element_shout, :bundlex_lib,
         sources: [
           "sink.c",
           "../deps/membrane_common_c/c_src/membrane/ringbuffer.c",
-          "../deps/membrane_common_c/c_src/membrane/c11-queues/spsc_queue.c",
-          "../deps/membrane_common_c/c_src/membrane/c11-queues/memory.c",
+          "../deps/membrane_common_c/c_src/membrane/portaudio/pa_ringbuffer.c",
+          "../deps/membrane_common_c/c_src/membrane/log.c",
         ],
         libs: [
         ]
@@ -50,8 +50,8 @@ config :membrane_element_shout, :bundlex_lib,
         sources: [
           "sink.c",
           "../deps/membrane_common_c/c_src/membrane/ringbuffer.c",
-          "../deps/membrane_common_c/c_src/membrane/c11-queues/spsc_queue.c",
-          "../deps/membrane_common_c/c_src/membrane/c11-queues/memory.c",
+          "../deps/membrane_common_c/c_src/membrane/portaudio/pa_ringbuffer.c",
+          "../deps/membrane_common_c/c_src/membrane/log.c",
         ],
         libs: [
         ]
@@ -68,8 +68,8 @@ config :membrane_element_shout, :bundlex_lib,
         sources: [
           "sink.c",
           "../deps/membrane_common_c/c_src/membrane/ringbuffer.c",
-          "../deps/membrane_common_c/c_src/membrane/c11-queues/spsc_queue.c",
-          "../deps/membrane_common_c/c_src/membrane/c11-queues/memory.c",
+          "../deps/membrane_common_c/c_src/membrane/portaudio/pa_ringbuffer.c",
+          "../deps/membrane_common_c/c_src/membrane/log.c",
         ],
         libs: [
         ],

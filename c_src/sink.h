@@ -13,6 +13,8 @@
 #include <erl_nif.h>
 #include <membrane/membrane.h>
 #include <membrane/ringbuffer.h>
+#define MEMBRANE_LOG_TAG "Membrane.Element.Shout.Sink.Native"
+#include <membrane/log.h>
 #include <shout/shout.h>
 
 typedef struct _SinkHandle SinkHandle;
@@ -27,5 +29,10 @@ struct _SinkHandle
   MembraneRingBuffer *ringbuffer;          // Ringbuffer for pending payload
   ErlNifPid          *self_pid;            // PID of the process for receiving messages
 };
+
+typedef struct RingBufferItem {
+  size_t size; // length of the data
+  unsigned char *data; // data itself
+} RingBufferItem;
 
 #endif
