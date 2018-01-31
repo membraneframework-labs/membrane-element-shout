@@ -1,6 +1,6 @@
 defmodule Membrane.Element.Shout.Sink do
   use Membrane.Element.Base.Sink
-  use Membrane.Mixins.Log
+  use Membrane.Mixins.Log, tags: :membrane_element_shout
   alias Membrane.Element.Shout.Sink.Options
   alias Membrane.Element.Shout.Sink.Native
   # alias Membrane.Caps.Audio.MPEG
@@ -55,6 +55,17 @@ defmodule Membrane.Element.Shout.Sink do
     {native |> Native.write(payload), state}
   end
 
+  def handle_event(:sink, %Membrane.Event{type: :channel_added}, _, state) do
+    info "new channel"
+    {:ok, state}
+  end
+  def handle_event(:sink, %Membrane.Event{type: :channel_removed}, _, state) do
+    info "end of channel"
+    {:ok, state}
+  end
+  def handle_event(pad, event, ctx, state) do
+    super(pad, event, ctx, state)
+  end
 
   @doc false
   # Handle request from NIF to get more data
