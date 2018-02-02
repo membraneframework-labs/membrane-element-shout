@@ -10,9 +10,9 @@ config :membrane_element_shout, :bundlex_lib,
         ],
         sources: [
           "sink.c",
-          "../deps/membrane_common_c/c_src/membrane/ringbuffer.c",
-          "../deps/membrane_common_c/c_src/membrane/portaudio/pa_ringbuffer.c",
-          "../deps/membrane_common_c/c_src/membrane/log.c",
+          "../../membrane_common_c/c_src/membrane/ringbuffer.c",
+          "../../membrane_common_c/c_src/membrane/portaudio/pa_ringbuffer.c",
+          "../../membrane_common_c/c_src/membrane/log.c",
         ],
         libs: [
         ],
@@ -31,9 +31,9 @@ config :membrane_element_shout, :bundlex_lib,
         ],
         sources: [
           "sink.c",
-          "../deps/membrane_common_c/c_src/membrane/ringbuffer.c",
-          "../deps/membrane_common_c/c_src/membrane/portaudio/pa_ringbuffer.c",
-          "../deps/membrane_common_c/c_src/membrane/log.c",
+          "../../membrane_common_c/c_src/membrane/ringbuffer.c",
+          "../../membrane_common_c/c_src/membrane/portaudio/pa_ringbuffer.c",
+          "../../membrane_common_c/c_src/membrane/log.c",
         ],
         libs: [
         ]
@@ -49,9 +49,9 @@ config :membrane_element_shout, :bundlex_lib,
         ],
         sources: [
           "sink.c",
-          "../deps/membrane_common_c/c_src/membrane/ringbuffer.c",
-          "../deps/membrane_common_c/c_src/membrane/portaudio/pa_ringbuffer.c",
-          "../deps/membrane_common_c/c_src/membrane/log.c",
+          "../../membrane_common_c/c_src/membrane/ringbuffer.c",
+          "../../membrane_common_c/c_src/membrane/portaudio/pa_ringbuffer.c",
+          "../../membrane_common_c/c_src/membrane/log.c",
         ],
         libs: [
         ]
@@ -67,9 +67,9 @@ config :membrane_element_shout, :bundlex_lib,
         ],
         sources: [
           "sink.c",
-          "../deps/membrane_common_c/c_src/membrane/ringbuffer.c",
-          "../deps/membrane_common_c/c_src/membrane/portaudio/pa_ringbuffer.c",
-          "../deps/membrane_common_c/c_src/membrane/log.c",
+          "../../membrane_common_c/c_src/membrane/ringbuffer.c",
+          "../../membrane_common_c/c_src/membrane/portaudio/pa_ringbuffer.c",
+          "../../membrane_common_c/c_src/membrane/log.c",
         ],
         libs: [
         ],

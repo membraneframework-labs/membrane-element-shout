@@ -140,20 +140,21 @@ static void *thread_func(void *args) {
     MEMBRANE_THREADED_DEBUG("Send: Ready buffers: %zd", ready_size);
 
     RingBufferItem item;
-
-    if(membrane_ringbuffer_read(sink_handle->ringbuffer, &item, 1)){
+    size_t read_cnt = membrane_ringbuffer_read(sink_handle->ringbuffer, &item, 1);
+    // printf("read_cnt: %d\n", read_cnt);
+    char data[] = {
+        255, 251, 16, 100, 0, 15, 240, 0, 0, 105, 0, 0, 0, 8, 0, 0, 13, 32, 0,
+        0, 1, 0, 0, 1, 164, 0, 0, 0, 32, 0, 0, 52, 128, 0, 0, 4, 76, 65, 77, 69,
+        51, 46, 49, 48, 48,
+        85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85,
+        85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85,
+        85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85,
+        85, 85, 85, 85, 85
+      };
+    if(read_cnt == 1){
       ENIF_SEND_DEMAND(1, {shout_close(sink_handle->shout);});
     } else {
       MEMBRANE_THREADED_WARN("Send: Underrun");
-      unsigned char data[] = {
-          255, 251, 16, 100, 0, 15, 240, 0, 0, 105, 0, 0, 0, 8, 0, 0, 13, 32, 0,
-          0, 1, 0, 0, 1, 164, 0, 0, 0, 32, 0, 0, 52, 128, 0, 0, 4, 76, 65, 77, 69,
-          51, 46, 49, 48, 48,
-          85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85,
-          85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85,
-          85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85,
-          85, 85, 85, 85, 85
-        };
       item.data = data;
       item.size = 104;
     }
