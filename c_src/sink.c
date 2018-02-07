@@ -125,7 +125,9 @@ static void *thread_func(void *args) {
     goto thread_cleanup;
   }
 
-  MEMBRANE_THREADED_DEBUG("Connected to the server");
+  MEMBRANE_THREADED_INFO("Connected to icecast");
+
+  int underrun_cnt = 0;
   while(1) {
     // Check if we are exiting
     enif_mutex_lock(sink_handle->lock);
@@ -141,7 +143,8 @@ static void *thread_func(void *args) {
 
     RingBufferItem item;
     size_t read_cnt = membrane_ringbuffer_read(sink_handle->ringbuffer, &item, 1);
-    // printf("read_cnt: %d\n", read_cnt);
+
+    //FIXME: get from mpeg caps sound_of_silence
     char data[] = {
         255, 251, 16, 100, 0, 15, 240, 0, 0, 105, 0, 0, 0, 8, 0, 0, 13, 32, 0,
         0, 1, 0, 0, 1, 164, 0, 0, 0, 32, 0, 0, 52, 128, 0, 0, 4, 76, 65, 77, 69,
@@ -153,8 +156,12 @@ static void *thread_func(void *args) {
       };
     if(read_cnt == 1){
       ENIF_SEND_DEMAND(1, {shout_close(sink_handle->shout);});
+      if(underrun_cnt > 0) {
+        MEMBRANE_THREADED_WARN("Send: Underrun, sent %d silent frames", underrun_cnt);
+        underrun_cnt = 0;
+      }
     } else {
-      MEMBRANE_THREADED_WARN("Send: Underrun");
+      underrun_cnt++;
       item.data = data;
       item.size = 104;
     }
@@ -162,6 +169,8 @@ static void *thread_func(void *args) {
     // Send
     MEMBRANE_THREADED_DEBUG("Send: Pushing payload");
     int send_ret = shout_send(sink_handle->shout, item.data, item.size);
+    if(read_cnt == 1)
+      free(item.data);
 
     if(send_ret != SHOUTERR_SUCCESS) {
       MEMBRANE_THREADED_WARN("Send: error %s", shout_get_error(sink_handle->shout));
@@ -175,6 +184,10 @@ static void *thread_func(void *args) {
   }
 
 thread_cleanup:
+
+  if(underrun_cnt > 0) {
+    MEMBRANE_THREADED_WARN("Send: Underrun, sent %d silent frames", underrun_cnt);
+  }
 
   MEMBRANE_THREADED_DEBUG("Send: Stopping");
 
