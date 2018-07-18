@@ -104,6 +104,7 @@ void unload(ErlNifEnv *env, void *priv_data) {
 static void *thread_func(void *args) {
   SinkHandle *sink_handle = (SinkHandle *) args;
   ErlNifEnv *msg_env;
+  int underrun_cnt = 0;
 
   // Indicate that we are running
   enif_mutex_lock(sink_handle->lock);
@@ -127,7 +128,6 @@ static void *thread_func(void *args) {
 
   MEMBRANE_THREADED_INFO("Connected to icecast");
 
-  int underrun_cnt = 0;
   while(1) {
     // Check if we are exiting
     enif_mutex_lock(sink_handle->lock);
@@ -144,38 +144,25 @@ static void *thread_func(void *args) {
     RingBufferItem item;
     size_t read_cnt = membrane_ringbuffer_read(sink_handle->ringbuffer, &item, 1);
 
-    //FIXME: get from mpeg caps sound_of_silence
-    char data[] = {
-        255, 251, 16, 100, 0, 15, 240, 0, 0, 105, 0, 0, 0, 8, 0, 0, 13, 32, 0,
-        0, 1, 0, 0, 1, 164, 0, 0, 0, 32, 0, 0, 52, 128, 0, 0, 4, 76, 65, 77, 69,
-        51, 46, 49, 48, 48,
-        85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85,
-        85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85,
-        85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85,
-        85, 85, 85, 85, 85
-      };
     if(read_cnt == 1){
       ENIF_SEND_DEMAND(1, {shout_close(sink_handle->shout);});
       if(underrun_cnt > 0) {
-        MEMBRANE_THREADED_WARN("Send: Underrun, sent %d silent frames", underrun_cnt);
+        MEMBRANE_THREADED_WARN("Send: Underrun: %d frames", underrun_cnt);
         underrun_cnt = 0;
+      }
+      // Send
+      MEMBRANE_THREADED_DEBUG("Send: Pushing payload");
+      int send_ret = shout_send(sink_handle->shout, item.data, item.size);
+      free(item.data);
+
+      if(send_ret != SHOUTERR_SUCCESS) {
+        MEMBRANE_THREADED_WARN("Send: error %s", shout_get_error(sink_handle->shout));
+        ENIF_SEND_ATOM_WITH_ERROR("native_send_error", { shout_close(sink_handle->shout); });
+        break;
       }
     } else {
       underrun_cnt++;
-      item.data = data;
-      item.size = 104;
-    }
-
-    // Send
-    MEMBRANE_THREADED_DEBUG("Send: Pushing payload");
-    int send_ret = shout_send(sink_handle->shout, item.data, item.size);
-    if(read_cnt == 1)
-      free(item.data);
-
-    if(send_ret != SHOUTERR_SUCCESS) {
-      MEMBRANE_THREADED_WARN("Send: error %s", shout_get_error(sink_handle->shout));
-      ENIF_SEND_ATOM_WITH_ERROR("native_send_error", { shout_close(sink_handle->shout); });
-      break;
+      usleep(24000);
     }
 
     // Sleep for necessary amount of time to keep frames in sync with the clock
@@ -186,7 +173,7 @@ static void *thread_func(void *args) {
 thread_cleanup:
 
   if(underrun_cnt > 0) {
-    MEMBRANE_THREADED_WARN("Send: Underrun, sent %d silent frames", underrun_cnt);
+    MEMBRANE_THREADED_WARN("Send: Underrun: %d frames", underrun_cnt);
   }
 
   MEMBRANE_THREADED_DEBUG("Send: Stopping");
@@ -425,4 +412,4 @@ static ErlNifFunc nif_funcs[] =
 };
 
 
-ERL_NIF_INIT(Elixir.Membrane.Element.Shout.Sink.Native, nif_funcs, load, NULL, NULL, unload)
+ERL_NIF_INIT(Elixir.Membrane.Element.Shout.Sink.Native.Nif, nif_funcs, load, NULL, NULL, unload)

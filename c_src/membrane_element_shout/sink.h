@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <erl_nif.h>
 #include <membrane/membrane.h>
-#include <membrane/ringbuffer.h>
+#include <membrane_ringbuffer/ringbuffer.h>
 #define MEMBRANE_LOG_TAG "Membrane.Element.Shout.Sink.Native"
 #include <membrane/log.h>
 #include <shout/shout.h>

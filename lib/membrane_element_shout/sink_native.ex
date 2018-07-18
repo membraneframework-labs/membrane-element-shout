@@ -3,15 +3,7 @@ defmodule Membrane.Element.Shout.Sink.Native do
   This module is an interface to native libshout-based sink.
   """
 
-  require Bundlex.Loader
-  @on_load :load_nifs
-
-  @doc false
-  def load_nifs do
-    Bundlex.Loader.load_lib_nif!(:membrane_element_shout, :membrane_element_shout_sink)
-  end
-
-
+  use Bundlex.Loader, nif: :sink
 
   @doc """
   Creates shout sink.
@@ -32,11 +24,10 @@ defmodule Membrane.Element.Shout.Sink.Native do
   On sink initialization error, returns `{:error, {:internal, reason}}`.
   """
   @spec create(charlist, pos_integer, charlist, charlist) ::
-    {:ok, any} |
-    {:error, {:args, atom, String.t}} |
-    {:error, {:internal, atom}}
-  def create(_host, _port, _password, _mount), do: raise "NIF fail"
-
+          {:ok, any}
+          | {:error, {:args, atom, String.t()}}
+          | {:error, {:internal, atom}}
+  defnif create(host, port, password, mount)
 
   @doc """
   Starts sending.
@@ -54,12 +45,11 @@ defmodule Membrane.Element.Shout.Sink.Native do
   On internal error, returns `{:error, {:internal, reason}}`.
   """
   @spec start(any) ::
-    :ok |
-    {:error, :already_started} |
-    {:error, {:args, atom, String.t}} |
-    {:error, {:internal, atom}}
-  def start(_native), do: raise "NIF fail"
-
+          :ok
+          | {:error, :already_started}
+          | {:error, {:args, atom, String.t()}}
+          | {:error, {:internal, atom}}
+  defnif start(native)
 
   @doc """
   Stops sending.
@@ -77,12 +67,11 @@ defmodule Membrane.Element.Shout.Sink.Native do
   On internal error, returns `{:error, {:internal, reason}}`.
   """
   @spec stop(any) ::
-    :ok |
-    {:error, :not_started} |
-    {:error, {:args, atom, String.t}} |
-    {:error, {:internal, atom}}
-  def stop(_native), do: raise "NIF fail"
-
+          :ok
+          | {:error, :not_started}
+          | {:error, {:args, atom, String.t()}}
+          | {:error, {:internal, atom}}
+  defnif stop(native)
 
   @doc """
   Writes data to the shout sink.
@@ -99,8 +88,8 @@ defmodule Membrane.Element.Shout.Sink.Native do
   On internal error, returns `{:error, {:write, reason}}`.
   """
   @spec write(any, bitstring) ::
-    :ok |
-    {:error, {:args, atom, String.t}} |
-    {:error, {:internal, atom}}
-  def write(_native, _payload), do: raise "NIF fail"
+          :ok
+          | {:error, {:args, atom, String.t()}}
+          | {:error, {:internal, atom}}
+  defnif write(native, payload)
 end
