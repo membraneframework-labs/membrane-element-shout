@@ -5,8 +5,8 @@ defmodule Membrane.Element.Shout.BundlexProject do
     [
       nifs: [
         sink: [
-          sources: ["sink.c"],
-          deps: [membrane_common_c: [:membrane, :membrane_ringbuffer]],
+          sources: ["_generated/sink.c", "sink.c"],
+          deps: [unifex: :unifex, membrane_common_c: [:membrane, :membrane_ringbuffer]],
           pkg_configs: [
             "shout"
           ]
