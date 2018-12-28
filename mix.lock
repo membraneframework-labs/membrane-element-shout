@@ -8,5 +8,5 @@
   "porcelain": {:hex, :porcelain, "2.0.3", "2d77b17d1f21fed875b8c5ecba72a01533db2013bd2e5e62c6d286c029150fdc", [:mix], [], "hexpm"},
   "qex": {:hex, :qex, "0.5.0", "5a3a9becf67d4006377c4c247ffdaaa8ae5b3634a0caadb788dc24d6125068f4", [:mix], [], "hexpm"},
   "shmex": {:hex, :shmex, "0.1.3", "c74b0eea73f2546acdfa46f7cd248f585af4b82253e16824458a5e0ce2d02b8c", [:mix], [{:bunch, "~> 0.1.2", [hex: :bunch, repo: "hexpm", optional: false]}, {:bunch_native, "~> 0.1.1", [hex: :bunch_native, repo: "hexpm", optional: false]}, {:bundlex, "~> 0.1.3", [hex: :bundlex, repo: "hexpm", optional: false]}], "hexpm"},
-  "unifex": {:git, "https://github.com/membraneframework/unifex.git", "6bcf6ca42657a60259b3148cebc52ba4e1e9a398", [branch: "feature/lifecycle-callbacks"]},
+  "unifex": {:git, "https://github.com/membraneframework/unifex.git", "7312778c3f1be66759aac2f8aeb8c66d2a0c3925", [branch: "feature/lifecycle-callbacks"]},
 }
