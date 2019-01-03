@@ -8,7 +8,7 @@
 
 #include <membrane/membrane.h>
 #include <membrane_ringbuffer/ringbuffer.h>
-#define MEMBRANE_LOG_TAG "Membrane.Element.Shout.Sink.Native"
+#define MEMBRANE_LOG_TAG "Elixir.Membrane.Element.Shout.Sink.Native"
 #include <membrane/log.h>
 #include <shout/shout.h>
 

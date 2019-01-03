@@ -16,7 +16,7 @@ spec stop(state) ::
        | {:error :: label, :not_started :: label}
        | {:error :: label, {:internal, atom}}
 
-spec write(payload, state) ::
+spec write_data(payload, state) ::
        (:ok :: label)
        | {:error :: label, {:internal :: label, atom}}
 

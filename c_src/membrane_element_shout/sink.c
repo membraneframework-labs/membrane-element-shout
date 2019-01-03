@@ -301,17 +301,18 @@ stop_exit:
 /**
  * Writes data to the shout sink.
  */
-UNIFEX_TERM write(UnifexEnv *env, UnifexPayload *payload,
-                  UnifexNifState *state) {
+UNIFEX_TERM write_data(UnifexEnv *env, UnifexPayload *payload,
+                       UnifexNifState *state) {
   MEMBRANE_DEBUG(env, "Writing data to SinkHandle %p", (void *)state);
   RingBufferItem item;
   item.size = payload->size;
   item.data = unifex_alloc(item.size);
   memcpy(item.data, payload->data, item.size);
+
   if (!membrane_ringbuffer_write(state->ringbuffer, &item, 1)) {
-    return write_result_error_internal(env, "overrun");
-  } else {
-    MEMBRANE_DEBUG(env, "Wrote data to SinkHandle %p", (void *)state);
-    return write_result_ok(env);
+    return write_data_result_error_internal(env, "overrun");
   }
+
+  MEMBRANE_DEBUG(env, "Wrote data to SinkHandle %p", (void *)state);
+  return write_data_result_ok(env);
 }

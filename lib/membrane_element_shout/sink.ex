@@ -48,7 +48,7 @@ defmodule Membrane.Element.Shout.Sink do
 
   @impl true
   def handle_write(:input, %Buffer{payload: payload}, _ctx, %{native: native} = state) do
-    {native |> Native.write(payload), state}
+    {Native.write_data(payload, native), state}
   end
 
   @impl true
