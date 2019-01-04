@@ -115,7 +115,7 @@ static void *thread_func(void *arg) {
       // We are checking the condition again under mutex to make sure we won't miss the signal
       if (!available) {
         if (!underrun_flag) {
-          underrun_start = unifex_monotonic_time(UNIFEX_TIME_MSEC);
+          underrun_start = unifex_monotonic_time(UNIFEX_TIME_USEC);
           underrun_flag = 1;
           MEMBRANE_THREADED_WARN(msg_env, "Consumer thread: Underrun");
           unifex_clear_env(msg_env);
@@ -132,10 +132,10 @@ static void *thread_func(void *arg) {
     }
 
     if (underrun_flag) {
-      UnifexTime now = unifex_monotonic_time(UNIFEX_TIME_MSEC);
+      UnifexTime now = unifex_monotonic_time(UNIFEX_TIME_USEC);
       MEMBRANE_THREADED_WARN(msg_env,
                              "Consumer thread: Continuing after underrun, "
-                             "buffer was empty for %ld msec",
+                             "buffer was empty for %ld usec",
                              now - underrun_start);
       unifex_clear_env(msg_env);
       underrun_flag = 0;
