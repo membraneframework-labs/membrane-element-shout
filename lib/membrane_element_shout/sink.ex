@@ -57,7 +57,7 @@ defmodule Membrane.Element.Shout.Sink do
     {{:ok, demand: {:input, &(&1 + size)}}, state}
   end
 
-  def handle_other({:error, reason}, _ctx, state) do
+  def handle_other({:native_error, reason}, _ctx, state) do
     {{:error, {:native, reason}}, state}
   end
 
