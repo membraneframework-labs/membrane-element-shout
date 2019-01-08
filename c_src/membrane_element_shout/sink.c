@@ -1,7 +1,5 @@
 /**
  * Membrane Element: Shout - Erlang native interface to libshout.
- *
- * All Rights Reserved, (c) 2016 Marcin Lewandowski
  */
 
 #include "sink.h"
@@ -48,52 +46,45 @@ void on_unload(UnifexEnv *env, void *priv_data) {
  */
 static void *thread_func(void *arg) {
   UnifexNifState *state = (UnifexNifState *)arg;
-  UnifexEnv *msg_env = unifex_alloc_env();
+  UnifexEnv *env = unifex_alloc_env();
   int res, underrun_flag = 0;
   UnifexTime underrun_start;
 
   // Keep the handle so it does not get garbage collected
-  unifex_keep_state(NULL, state);
+  unifex_keep_state(env, state);
 
   // Indicate that we are running
   unifex_mutex_lock(state->lock);
   state->thread_running = 1;
   unifex_mutex_unlock(state->lock);
 
-  MEMBRANE_THREADED_DEBUG(msg_env, "Consumer thread thread: Starting");
-  unifex_clear_env(msg_env);
+  MEMBRANE_THREADED_DEBUG(env, "Consumer thread: Starting");
 
-  res = send_native_demand(msg_env, state->self_pid, UNIFEX_SEND_THREADED,
+  res = send_native_demand(env, state->self_pid, UNIFEX_SEND_THREADED,
                            RINGBUFFER_SIZE);
-  unifex_clear_env(msg_env);
 
   if (!res) {
     goto thread_cleanup;
   }
 
-  MEMBRANE_THREADED_DEBUG(msg_env, "Connecting to the server");
-  unifex_clear_env(msg_env);
+  MEMBRANE_THREADED_DEBUG(env, "Connecting to the server");
 
   if (shout_open(state->shout) != SHOUTERR_SUCCESS) {
-    MEMBRANE_THREADED_WARN(msg_env, "Failed to connect to the server: %s",
+    MEMBRANE_THREADED_WARN(env, "Failed to connect to the server: %s",
                            shout_get_error(state->shout));
-    unifex_clear_env(msg_env);
-    send_native_error_shout_open(msg_env, state->self_pid, UNIFEX_SEND_THREADED,
+    send_native_error_shout_open(env, state->self_pid, UNIFEX_SEND_THREADED,
                                  (char *)shout_get_error(state->shout));
-    unifex_clear_env(msg_env);
     goto thread_cleanup;
   }
 
-  MEMBRANE_THREADED_INFO(msg_env, "Connected to icecast");
-  unifex_clear_env(msg_env);
+  MEMBRANE_THREADED_INFO(env, "Connected to icecast");
 
   while (1) {
     // Check if we are exiting
     unifex_mutex_lock(state->lock);
     if (state->thread_started == 0) {
-      MEMBRANE_THREADED_DEBUG(msg_env,
+      MEMBRANE_THREADED_DEBUG(env,
                               "Consumer thread: Stop requested, exiting loop");
-      unifex_clear_env(msg_env);
       unifex_mutex_unlock(state->lock);
       goto thread_cleanup;
     }
@@ -101,85 +92,78 @@ static void *thread_func(void *arg) {
 
     size_t ready_size =
         membrane_ringbuffer_get_read_available(state->ringbuffer);
-    MEMBRANE_THREADED_DEBUG(msg_env, "Consumer thread: Ready buffers: %zd",
+    MEMBRANE_THREADED_DEBUG(env, "Consumer thread: Ready buffers: %zd",
                             ready_size);
-    unifex_clear_env(msg_env);
 
     RingBufferItem item;
     size_t read_cnt = membrane_ringbuffer_read(state->ringbuffer, &item, 1);
 
     if (read_cnt == 0) {
-    // Something might be written to ringbuffer between read and condition check
+      // Something might be written to ringbuffer between
+      // read and condition check
       unifex_mutex_lock(state->cond_lock);
-      size_t available = membrane_ringbuffer_get_read_available(state->ringbuffer);
-      // We are checking the condition again under mutex to make sure we won't miss the signal
+      size_t available =
+          membrane_ringbuffer_get_read_available(state->ringbuffer);
+      // We are checking the condition again under mutex to make sure we won't
+      // miss the signal
       if (!available) {
         if (!underrun_flag) {
           underrun_start = unifex_monotonic_time(UNIFEX_TIME_USEC);
           underrun_flag = 1;
-          MEMBRANE_THREADED_WARN(msg_env, "Consumer thread: Underrun");
-          unifex_clear_env(msg_env);
+          MEMBRANE_THREADED_WARN(env, "Consumer thread: Underrun");
         }
         unifex_cond_wait(state->cond, state->cond_lock);
       }
       // If something appeared in ringbuffer, we won't wait now.
       // We'll process this buffer and possibly miss that signal, but that's OK.
-      // If the signal arrives after we process that buffer and start waiting on a condition variable,
-      // we'll get a false positive, but that have to be handled either way
-      // because cond_wait can return even if signal or broadcast was not called.
+      // If the signal arrives after we process that buffer and start waiting on
+      // a condition variable, we'll get a false positive, but that have to be
+      // handled either way because cond_wait can return even if signal or
+      // broadcast was not called.
       unifex_mutex_unlock(state->cond_lock);
       continue;
     }
 
     if (underrun_flag) {
       UnifexTime now = unifex_monotonic_time(UNIFEX_TIME_USEC);
-      MEMBRANE_THREADED_WARN(msg_env,
+      MEMBRANE_THREADED_WARN(env,
                              "Consumer thread: Continuing after underrun, "
                              "buffer was empty for %ld usec",
                              now - underrun_start);
-      unifex_clear_env(msg_env);
       underrun_flag = 0;
     }
 
-    res = send_native_demand(msg_env, state->self_pid, UNIFEX_SEND_THREADED, 1);
-    unifex_clear_env(msg_env);
+    res = send_native_demand(env, state->self_pid, UNIFEX_SEND_THREADED, 1);
     if (!res) {
       goto thread_cleanup;
     }
 
     // Send
-    MEMBRANE_THREADED_DEBUG(msg_env, "Consumer thread: Pushing payload");
-    unifex_clear_env(msg_env);
+    MEMBRANE_THREADED_DEBUG(env, "Consumer thread: Pushing payload");
     res = shout_send(state->shout, item.data, item.size);
     unifex_free(item.data);
 
     if (res != SHOUTERR_SUCCESS) {
-      MEMBRANE_THREADED_WARN(msg_env, "Consumer thread: send error %s",
+      MEMBRANE_THREADED_WARN(env, "Consumer thread: send error %s",
                              shout_get_error(state->shout));
-      unifex_clear_env(msg_env);
-      send_native_error_shout_send(msg_env, state->self_pid,
-                                   UNIFEX_SEND_THREADED,
+      send_native_error_shout_send(env, state->self_pid, UNIFEX_SEND_THREADED,
                                    (char *)shout_get_error(state->shout));
-      unifex_clear_env(msg_env);
       goto thread_cleanup;
     }
     // Sleep for necessary amount of time to keep frames in sync with the clock
-    MEMBRANE_THREADED_DEBUG(msg_env, "Consumer thread: Synchronizing clock");
-    unifex_clear_env(msg_env);
+    MEMBRANE_THREADED_DEBUG(env, "Consumer thread: Synchronizing clock");
     shout_sync(state->shout);
   }
 
 thread_cleanup:
 
-  MEMBRANE_THREADED_DEBUG(msg_env, "Consumer thread: Stopping");
-  unifex_clear_env(msg_env);
+  MEMBRANE_THREADED_DEBUG(env, "Consumer thread: Stopping");
 
   if (underrun_flag) {
     UnifexTime now = unifex_monotonic_time(UNIFEX_TIME_MSEC);
     MEMBRANE_THREADED_WARN(
-        msg_env, "Consumer thread: Stopping, buffer was empty for %ld msec",
+        env, "Consumer thread: Stopping, buffer was empty for %ld msec",
         now - underrun_start);
-    unifex_clear_env(msg_env);
   }
 
   // Close shout
@@ -194,10 +178,10 @@ thread_cleanup:
   unifex_mutex_unlock(state->lock);
 
   // Release the handle so it can be garbage collected
-  unifex_release_state(NULL, state);
+  unifex_release_state(env, state);
 
-  MEMBRANE_THREADED_DEBUG(msg_env, "Consumer thread: Stopped");
-  unifex_free_env(msg_env);
+  MEMBRANE_THREADED_DEBUG(env, "Consumer thread: Stopped");
+  unifex_free_env(env);
   return NULL;
 }
 

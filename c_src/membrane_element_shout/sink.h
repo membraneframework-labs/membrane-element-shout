@@ -19,8 +19,9 @@ typedef struct SinkState {
                        // started
   int thread_running;  // Flag indicating whether thread is actually running
   UnifexMutex *lock;   // Mutex for synchronizing access to the handle
-  UnifexMutex *cond_lock; // Mutex used to synchronize signals from condition variable
-  UnifexCond *cond;    // Condition variable used to wait for buffers on underrun
+  UnifexMutex
+      *cond_lock;   // Mutex used to synchronize signals from condition variable
+  UnifexCond *cond; // Condition variable used to wait for buffers on underrun
   MembraneRingBuffer *ringbuffer; // Ringbuffer for pending payload
   UnifexPid self_pid;             // PID of the process for receiving messages
 } UnifexNifState;
