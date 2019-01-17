@@ -14,8 +14,7 @@ defmodule Membrane.Element.Shout.Sink do
 
   @impl true
   def handle_init(%__MODULE__{host: host, port: port, mount: mount, password: password}) do
-    with {:ok, native} <-
-           Native.create(host, port, password, mount) do
+    with {:ok, native} <- Native.create(host, port, password, mount) do
       {:ok, %{native: native}}
     else
       {:error, reason} ->
