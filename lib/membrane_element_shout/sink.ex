@@ -1,4 +1,11 @@
 defmodule Membrane.Element.Shout.Sink do
+  @moduledoc """
+  Sink sending the data to an Icecast/Shoutcast server using `libshout` native library.
+
+  The element has it's own timing, so when used in pipeline all the elements have to work in `pull` mode
+  or be in sync with system clock. Otherwise, you risk overflowing buffers.
+  """
+
   alias __MODULE__.Consumer
   alias Membrane.{Buffer, Event}
   alias Membrane.Caps.Audio.MPEG

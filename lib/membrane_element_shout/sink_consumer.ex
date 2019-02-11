@@ -15,6 +15,9 @@ defmodule Membrane.Element.Shout.Sink.Consumer do
   @type t :: %__MODULE__{guard: pid(), native_ref: reference()}
   defstruct [:guard, :native_ref]
 
+  @doc """
+  Creates a consumer and it's guard making sure it is stopped before GC.
+  """
   @spec create(%Sink{}, pid()) :: {:ok, t} | {:error, any()}
   def create(%Sink{} = options, monitored_pid \\ self()) do
     %{host: host, port: port, mount: mount, password: password, ringbuffer_size: buf_size} =
@@ -26,16 +29,25 @@ defmodule Membrane.Element.Shout.Sink.Consumer do
     end
   end
 
+  @doc """
+  Starts native consumer thread.
+  """
   @spec start(t) :: :ok | {:error, any()}
   def start(%__MODULE__{native_ref: ref}) do
     Native.start(ref)
   end
 
+  @doc """
+  Writes data to a consumer's ringbuffer.
+  """
   @spec write(Membrane.Payload.t(), t) :: :ok | {:error, any()}
   def write(data, %__MODULE__{native_ref: ref}) do
     Native.write_data(data, ref)
   end
 
+  @doc """
+  Sends a stop signal to consumer guard, stopping the consumer asynchronously.
+  """
   @spec stop(t) :: :ok
   def stop(%__MODULE__{guard: guard}) do
     GenServer.cast(guard, :stop)
