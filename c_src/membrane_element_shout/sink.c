@@ -7,8 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define RINGBUFFER_SIZE 8
-
 static void stop_thread(UnifexNifState *state);
 static void *thread_func(void *arg);
 
@@ -69,15 +67,6 @@ static void *thread_func(void *arg) {
   unifex_mutex_lock(state->lock);
   state->thread_running = 1;
   unifex_mutex_unlock(state->lock);
-
-  MEMBRANE_THREADED_DEBUG(env, "Consumer thread: Starting");
-
-  res = send_native_demand(env, state->self_pid, UNIFEX_SEND_THREADED,
-                           RINGBUFFER_SIZE);
-
-  if (!res) {
-    goto thread_cleanup;
-  }
 
   MEMBRANE_THREADED_DEBUG(env, "Connecting to the server");
 
@@ -201,7 +190,7 @@ thread_cleanup:
  * Initializes shout sink and creates a state returned to Erlang VM.
  */
 UNIFEX_TERM create(UnifexEnv *env, char *host, unsigned int port,
-                   char *password, char *mount) {
+                   char *password, char *mount, unsigned int buffer_size) {
   shout_t *shout;
 
   if (!(shout = shout_new())) {
@@ -252,7 +241,7 @@ UNIFEX_TERM create(UnifexEnv *env, char *host, unsigned int port,
   state->cond_lock = unifex_mutex_create("shout_sink_cond_lock");
   state->cond = unifex_cond_create("shout_sink_cond");
   state->ringbuffer =
-      membrane_ringbuffer_new(RINGBUFFER_SIZE, sizeof(RingBufferItem));
+      membrane_ringbuffer_new(buffer_size, sizeof(RingBufferItem));
   state->thread_id = NULL;
   unifex_self(env, &state->self_pid);
 
@@ -281,7 +270,7 @@ UNIFEX_TERM start(UnifexEnv *env, UnifexNifState *state) {
   unifex_mutex_unlock(state->lock);
 
   state->thread_id = unifex_alloc(sizeof(UnifexTid));
-  int error = unifex_thread_create("membrane_element_shout_sink",
+  int error = unifex_thread_create("mbrn_shout_sink",
                                    state->thread_id, thread_func, state);
   if (error != 0) {
     MEMBRANE_WARN(env, "Failed to create thread: %d", error);
@@ -332,17 +321,13 @@ UNIFEX_TERM write_data(UnifexEnv *env, UnifexPayload *payload,
   item.data = unifex_alloc(item.size);
   memcpy(item.data, payload->data, item.size);
 
-  int is_empty = membrane_ringbuffer_get_read_available(state->ringbuffer) == 0;
-
   if (!membrane_ringbuffer_write(state->ringbuffer, &item, 1)) {
     return write_data_result_error_internal(env, "overrun");
   }
 
-  if (is_empty) {
-    unifex_mutex_lock(state->cond_lock);
-    unifex_cond_signal(state->cond);
-    unifex_mutex_unlock(state->cond_lock);
-  }
+  unifex_mutex_lock(state->cond_lock);
+  unifex_cond_signal(state->cond);
+  unifex_mutex_unlock(state->cond_lock);
 
   MEMBRANE_DEBUG(env, "Wrote data to SinkHandle %p", (void *)state);
   return write_data_result_ok(env);
