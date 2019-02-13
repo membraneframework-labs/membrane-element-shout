@@ -11,13 +11,12 @@ static void stop_thread(UnifexNifState *state);
 static void *thread_func(void *arg);
 
 void handle_destroy_state(UnifexEnv *env, UnifexNifState *state) {
+  UNIFEX_UNUSED(env);
   if (state->thread_id != NULL) {
-    MEMBRANE_DEBUG(env, "Stopping thread for SinkState %p", (void *)state);
     stop_thread(state);
   }
 
   if (state->shout != NULL) {
-    MEMBRANE_DEBUG(env, "Destroying Sink %p", state->shout);
     shout_close(state->shout);
   }
 
