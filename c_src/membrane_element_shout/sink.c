@@ -232,7 +232,6 @@ UNIFEX_TERM create(UnifexEnv *env, char *host, unsigned int port,
   }
 
   UnifexNifState *state = unifex_alloc_state(env);
-  MEMBRANE_DEBUG(env, "Creating SinkHandle %p", state);
   state->shout = shout;
   state->thread_started = 0;
   state->thread_running = 0;
@@ -246,6 +245,7 @@ UNIFEX_TERM create(UnifexEnv *env, char *host, unsigned int port,
 
   UNIFEX_TERM result = create_result_ok(env, state);
   unifex_release_state(env, state);
+  MEMBRANE_DEBUG(env, "Created state %p", state);
 
   return result;
 }
@@ -262,7 +262,7 @@ UNIFEX_TERM start(UnifexEnv *env, UnifexNifState *state) {
   }
 
   // Start the sending thread
-  MEMBRANE_DEBUG(env, "Starting sending thread for SinkState %p",
+  MEMBRANE_DEBUG(env, "Starting sending thread for state %p",
                  (void *)state);
 
   state->thread_started = 1;
@@ -288,9 +288,9 @@ UNIFEX_TERM stop(UnifexEnv *env, UnifexNifState *state) {
     return stop_result_error_not_started(env);
   }
 
-  MEMBRANE_DEBUG(env, "Stopping thread for SinkState %p", (void *)state);
+  MEMBRANE_DEBUG(env, "Stopping thread for state %p", (void *)state);
   stop_thread(state);
-  MEMBRANE_DEBUG(env, "Thread for SinkHandle %p has stopped", (void *)state);
+  MEMBRANE_DEBUG(env, "Thread for state %p has stopped", (void *)state);
 
   return stop_result_ok(env);
 }
@@ -314,7 +314,7 @@ static void stop_thread(UnifexNifState *state) {
  */
 UNIFEX_TERM write_data(UnifexEnv *env, UnifexPayload *payload,
                        UnifexNifState *state) {
-  MEMBRANE_DEBUG(env, "Writing data to SinkHandle %p", (void *)state);
+  MEMBRANE_DEBUG(env, "Writing data (%u B) to a thread from state %p", payload->size, (void *)state);
   RingBufferItem item;
   item.size = payload->size;
   item.data = unifex_alloc(item.size);
@@ -328,6 +328,6 @@ UNIFEX_TERM write_data(UnifexEnv *env, UnifexPayload *payload,
   unifex_cond_signal(state->cond);
   unifex_mutex_unlock(state->cond_lock);
 
-  MEMBRANE_DEBUG(env, "Wrote data to SinkHandle %p", (void *)state);
+  MEMBRANE_DEBUG(env, "Data written to a thread from state %p", (void *)state);
   return write_data_result_ok(env);
 }
