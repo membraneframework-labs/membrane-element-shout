@@ -1,9 +1,15 @@
-module Membrane.Element.Shout.Sink.Native
+module Membrane.Element.Shout.Sink.Consumer.Native
 
 callback :load, :on_load
 callback :unload, :on_unload
 
-spec create(host :: string, port :: unsigned, password :: string, mount :: string) ::
+spec create(
+       host :: string,
+       port :: unsigned,
+       password :: string,
+       mount :: string,
+       buffer_size :: unsigned
+     ) ::
        {:ok :: label, state} | {:error :: label, {:internal :: label, atom}}
 
 spec start(state) ::
@@ -23,3 +29,5 @@ spec write_data(payload, state) ::
 sends {:native_demand :: label, size :: unsigned}
 sends {:native_error :: label, {:shout_open :: label, error_msg :: string}}
 sends {:native_error :: label, {:shout_send :: label, error_msg :: string}}
+
+dirty :io, write_data: 2, stop: 1

@@ -7,15 +7,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define RINGBUFFER_SIZE 8
+static void stop_thread(UnifexNifState *state);
+static void *thread_func(void *arg);
 
 void handle_destroy_state(UnifexEnv *env, UnifexNifState *state) {
-  if (state->shout != NULL) {
-    MEMBRANE_DEBUG(env, "Destroying Sink %p", state->shout);
-    shout_close(state->shout);
+  UNIFEX_UNUSED(env);
+  if (state->thread_id != NULL) {
+    stop_thread(state);
   }
 
-  // TODO handle case when we get garbage collected while still running
+  if (state->shout != NULL) {
+    shout_close(state->shout);
+  }
 
   if (state->ringbuffer != NULL) {
     membrane_ringbuffer_destroy(state->ringbuffer);
@@ -23,6 +26,12 @@ void handle_destroy_state(UnifexEnv *env, UnifexNifState *state) {
 
   if (state->lock != NULL) {
     unifex_mutex_destroy(state->lock);
+  }
+  if (state->cond_lock != NULL) {
+    unifex_mutex_destroy(state->cond_lock);
+  }
+  if (state->cond != NULL) {
+    unifex_cond_destroy(state->cond);
   }
 }
 
@@ -57,15 +66,6 @@ static void *thread_func(void *arg) {
   unifex_mutex_lock(state->lock);
   state->thread_running = 1;
   unifex_mutex_unlock(state->lock);
-
-  MEMBRANE_THREADED_DEBUG(env, "Consumer thread: Starting");
-
-  res = send_native_demand(env, state->self_pid, UNIFEX_SEND_THREADED,
-                           RINGBUFFER_SIZE);
-
-  if (!res) {
-    goto thread_cleanup;
-  }
 
   MEMBRANE_THREADED_DEBUG(env, "Connecting to the server");
 
@@ -189,7 +189,7 @@ thread_cleanup:
  * Initializes shout sink and creates a state returned to Erlang VM.
  */
 UNIFEX_TERM create(UnifexEnv *env, char *host, unsigned int port,
-                   char *password, char *mount) {
+                   char *password, char *mount, unsigned int buffer_size) {
   shout_t *shout;
 
   if (!(shout = shout_new())) {
@@ -232,7 +232,6 @@ UNIFEX_TERM create(UnifexEnv *env, char *host, unsigned int port,
   }
 
   UnifexNifState *state = unifex_alloc_state(env);
-  MEMBRANE_DEBUG(env, "Creating SinkHandle %p", state);
   state->shout = shout;
   state->thread_started = 0;
   state->thread_running = 0;
@@ -240,11 +239,13 @@ UNIFEX_TERM create(UnifexEnv *env, char *host, unsigned int port,
   state->cond_lock = unifex_mutex_create("shout_sink_cond_lock");
   state->cond = unifex_cond_create("shout_sink_cond");
   state->ringbuffer =
-      membrane_ringbuffer_new(RINGBUFFER_SIZE, sizeof(RingBufferItem));
+      membrane_ringbuffer_new(buffer_size, sizeof(RingBufferItem));
+  state->thread_id = NULL;
   unifex_self(env, &state->self_pid);
 
   UNIFEX_TERM result = create_result_ok(env, state);
   unifex_release_state(env, state);
+  MEMBRANE_DEBUG(env, "Created state %p", state);
 
   return result;
 }
@@ -261,14 +262,15 @@ UNIFEX_TERM start(UnifexEnv *env, UnifexNifState *state) {
   }
 
   // Start the sending thread
-  MEMBRANE_DEBUG(env, "Starting sending thread for SinkState %p",
+  MEMBRANE_DEBUG(env, "Starting sending thread for state %p",
                  (void *)state);
 
   state->thread_started = 1;
   unifex_mutex_unlock(state->lock);
 
-  int error = unifex_thread_create("membrane_element_shout_sink",
-                                   &(state->thread_id), thread_func, state);
+  state->thread_id = unifex_alloc(sizeof(UnifexTid));
+  int error = unifex_thread_create("mbrn_shout_sink",
+                                   state->thread_id, thread_func, state);
   if (error != 0) {
     MEMBRANE_WARN(env, "Failed to create thread: %d", error);
     return start_result_error_internal(env, "thread_create");
@@ -281,31 +283,30 @@ UNIFEX_TERM start(UnifexEnv *env, UnifexNifState *state) {
  * Stops sending thread.
  */
 UNIFEX_TERM stop(UnifexEnv *env, UnifexNifState *state) {
-  UNIFEX_TERM result;
-  unifex_mutex_lock(state->lock);
+  // No need to lock, we only read
   if (state->thread_started == 0) {
-    result = stop_result_error_not_started(env);
-    goto stop_exit;
+    return stop_result_error_not_started(env);
   }
-  // Stop the sending thread
-  MEMBRANE_DEBUG(env, "Waiting for sending thread for SinkState %p to stop",
-                 (void *)state);
 
-  void *thread_result;
+  MEMBRANE_DEBUG(env, "Stopping thread for state %p", (void *)state);
+  stop_thread(state);
+  MEMBRANE_DEBUG(env, "Thread for state %p has stopped", (void *)state);
 
+  return stop_result_ok(env);
+}
+
+static void stop_thread(UnifexNifState *state) {
+  unifex_mutex_lock(state->lock);
   state->thread_started = 0;
   unifex_mutex_unlock(state->lock);
-  unifex_thread_join(state->thread_id, &thread_result);
-  unifex_mutex_lock(state->lock);
 
-  MEMBRANE_DEBUG(env, "Sending thread for SinkHandle %p has stopped",
-                 (void *)state);
+  unifex_mutex_lock(state->cond_lock);
+  unifex_cond_signal(state->cond);
+  unifex_mutex_unlock(state->cond_lock);
 
-  result = stop_result_ok(env);
-
-stop_exit:
-  unifex_mutex_unlock(state->lock);
-  return result;
+  unifex_thread_join(*state->thread_id, NULL);
+  unifex_free(state->thread_id);
+  state->thread_id = NULL;
 }
 
 /**
@@ -313,24 +314,20 @@ stop_exit:
  */
 UNIFEX_TERM write_data(UnifexEnv *env, UnifexPayload *payload,
                        UnifexNifState *state) {
-  MEMBRANE_DEBUG(env, "Writing data to SinkHandle %p", (void *)state);
+  MEMBRANE_DEBUG(env, "Writing data (%u B) to a thread from state %p", payload->size, (void *)state);
   RingBufferItem item;
   item.size = payload->size;
   item.data = unifex_alloc(item.size);
   memcpy(item.data, payload->data, item.size);
 
-  int is_empty = membrane_ringbuffer_get_read_available(state->ringbuffer) == 0;
-
   if (!membrane_ringbuffer_write(state->ringbuffer, &item, 1)) {
     return write_data_result_error_internal(env, "overrun");
   }
 
-  if (is_empty) {
-    unifex_mutex_lock(state->cond_lock);
-    unifex_cond_signal(state->cond);
-    unifex_mutex_unlock(state->cond_lock);
-  }
+  unifex_mutex_lock(state->cond_lock);
+  unifex_cond_signal(state->cond);
+  unifex_mutex_unlock(state->cond_lock);
 
-  MEMBRANE_DEBUG(env, "Wrote data to SinkHandle %p", (void *)state);
+  MEMBRANE_DEBUG(env, "Data written to a thread from state %p", (void *)state);
   return write_data_result_ok(env);
 }

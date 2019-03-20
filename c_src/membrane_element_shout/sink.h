@@ -14,7 +14,7 @@
 
 typedef struct SinkState {
   shout_t *shout;      // libshout handle
-  UnifexTid thread_id; // Capture thread ID
+  UnifexTid * thread_id; // Capture thread ID
   int thread_started;  // Flag indicating whether thread is supposed to be
                        // started
   int thread_running;  // Flag indicating whether thread is actually running

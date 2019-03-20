@@ -1,6 +1,6 @@
 [
   inputs: [
-    "{lib,test,config}/**/*.{ex,exs}",
+    "{lib,test,config,c_src}/**/*.{ex,exs}",
     "*.exs",
     ".formatter.exs"
   ],
