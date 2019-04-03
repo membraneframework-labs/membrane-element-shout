@@ -12,7 +12,7 @@ defmodule Membrane.Element.Shout.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env()),
       description: "Membrane Multimedia Framework (Shout Element)",
       maintainers: ["Membrane Team"],
-      licenses: ["Proprietary"],
+      licenses: ["Apache 2.0"],
       name: "Membrane Element: Shout",
       source_url: @github_url,
       deps: deps()

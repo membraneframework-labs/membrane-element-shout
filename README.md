@@ -17,12 +17,10 @@ Add the following line to your `deps` in `mix.exs`.  Run `mix deps.get`.
 {:membrane_element_shout, github: "membraneframework/membrane-element-shout"}
 ```
 
-Then add the following line to your `applications` in `mix.exs`.
+## Copyright and License
 
-```elixir
-:membrane_element_shout
-```
+Copyright 2019, [Software Mansion](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=membrane)
 
-# Authors
+[![Software Mansion](https://membraneframework.github.io/static/logo/swm_logo_readme.png)](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=membrane)
 
-Marcin Lewandowski, Bartosz Błaszków
+Licensed under the [Apache License, Version 2.0](LICENSE)
