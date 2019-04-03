@@ -28,9 +28,9 @@ defmodule Membrane.Element.Shout.Mixfile do
 
   defp deps do
     [
-      {:membrane_core, "~> 0.2.0"},
+      {:membrane_core, "~> 0.3.0"},
       {:membrane_common_c, "~> 0.2.1"},
-      {:membrane_caps_audio_mpeg, "~> 0.1"},
+      {:membrane_caps_audio_mpeg, "~> 0.2.0"},
       {:unifex, "~> 0.2.0"}
     ]
   end

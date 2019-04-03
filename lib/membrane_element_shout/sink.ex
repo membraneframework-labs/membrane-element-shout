@@ -18,7 +18,7 @@ defmodule Membrane.Element.Shout.Sink do
               mount: [type: :string],
               ringbuffer_size: [type: :integer, spec: pos_integer, default: 20]
 
-  def_input_pads input: [caps: MPEG, demand_unit: :buffers]
+  def_input_pad :input, caps: MPEG, demand_unit: :buffers
 
   @impl true
   def handle_init(%__MODULE__{} = options) do
