@@ -9,7 +9,7 @@ defmodule Membrane.Element.Shout.Sink do
   alias __MODULE__.Consumer
   alias Membrane.{Buffer, Event}
   alias Membrane.Caps.Audio.MPEG
-  use Membrane.Element.Base.Sink
+  use Membrane.Sink
   use Membrane.Log, tags: :membrane_element_shout
 
   def_options host: [type: :string],
