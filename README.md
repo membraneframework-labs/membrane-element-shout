@@ -1,5 +1,7 @@
 # Membrane Multimedia Framework: Shout Element
 
+[![CircleCI](https://circleci.com/gh/membraneframework/membrane-element-shout.svg?style=svg)](https://circleci.com/gh/membraneframework/membrane-element-shout)
+
 ## This element is experimental!
 
 This package provides elements that can be used to send streams to the
