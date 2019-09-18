@@ -48,6 +48,8 @@ defmodule Membrane.Element.Shout.Sink do
     end
   end
 
+  def handle_event(_pad, _event, _ctx, state), do: {:ok, state}
+
   @impl true
   def handle_playing_to_prepared(_ctx, %{consumer: consumer} = state) do
     with :ok <- Consumer.stop(consumer) do
