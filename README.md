@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/membraneframework/membrane-element-shout.svg?style=svg)](https://circleci.com/gh/membraneframework/membrane-element-shout)
 
-## This element is experimental!
+## This element is depracated in favour of [Membrane Element Icecast](https://github.com/membraneframework/membrane-element-icecast)
 
 This package provides elements that can be used to send streams to the
 [Icecast](http://icecast.org) streaming server.
